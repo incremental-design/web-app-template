@@ -3,4 +3,5 @@ module.exports = {
   transform: {
     '^.+\\.vue$': 'vue-jest',
   },
+  setupFilesAfterEnv: ['expect-playwright'],
 };
