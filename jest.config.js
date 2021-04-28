@@ -4,4 +4,6 @@ module.exports = {
     '^.+\\.vue$': 'vue-jest',
   },
   setupFilesAfterEnv: ['expect-playwright'],
+  globalSetup: './jestGlobalSetup.js',
+  globalTeardown: './jestGlobalTeardown.js',
 };
