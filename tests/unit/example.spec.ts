@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 let browser: any;
 
 beforeAll(async () => {
-  browser = await chromium.launch({ headless: false });
+  browser = await chromium.launch();
 });
 
 let page: any;
@@ -15,7 +15,7 @@ beforeEach(async () => {
   page = await browser.newPage();
 });
 
-describe('HelloWorld.vue', async () => {
+describe('HelloWorld.vue', () => {
   it('renders props.msg when passed', () => {
     const msg = 'new message';
     const wrapper = shallowMount(HelloWorld, {
@@ -25,8 +25,8 @@ describe('HelloWorld.vue', async () => {
   });
 
   it('should go to a webpage', async () => {
-    await page.goto('https://www.example.com');
-    expect(await page.title()).toBe('Example Domain');
+    await page.goto(`127.0.0.1:${process.env.WEBPACK_DEVELOPMENT_SERVER_PORT}`);
+    expect(await page.title()).toBe(process.env.npm_package_name);
   });
 });
 
