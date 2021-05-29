@@ -3,7 +3,7 @@ import { createSSRApp } from 'vue';
 import App from './App.vue';
 // import './registerServiceWorker';
 import createRouter from './router';
-// import store from './store';
+import createStore from './store';
 
 // createApp(App)
 //   .use(store)
@@ -13,6 +13,7 @@ import createRouter from './router';
 export default function(...args: any) {
   const app = createSSRApp(App);
   const router = createRouter();
-  app.use(router);
-  return { app, router };
+  const store = createStore();
+  app.use(router).use(store);
+  return { app, router, store };
 }
