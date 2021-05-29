@@ -4,6 +4,11 @@ const webpack = require('webpack');
 
 module.exports = {
   publicPath: '',
+  configureWebpack: {
+    devServer: {
+      headers: { 'Access-Control-Allow-Origin': '*' },
+    },
+  },
   chainWebpack: (webpackConfig) => {
     webpackConfig.module.rule('vue').uses.delete('cache-loader');
     webpackConfig.module.rule('js').uses.delete('cache-loader');

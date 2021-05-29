@@ -3,8 +3,7 @@ import createApp from './main';
 // import './registerServiceWorker';
 // import router from './router';
 // import store from './store';
-
-const { app, router, store } = createApp();
+const { app, router, store, devtools } = createApp();
 
 // app
 //   .use(store)
@@ -20,7 +19,13 @@ if (storeInitialState) {
 }
 
 router.isReady().then(() => {
-  app.mount('#app', true);
+  const instance = app.mount('#app', true);
+
+  /* eslint-disable */
+  // @ts-ignore
+  app._container._vnode = instance.$.vnode // see https://github.com/vuejs/vue-devtools/issues/1376#issuecomment-794544045
+  /* eslint-enable */
+  devtools.connect();
 });
 
 console.log(`${app} was mounted`);

@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
+    "serve": "vue-devtools & vue-cli-service serve",
     "build": "yarn run build:client && yarn run build:server",
     "build:client": "vue-cli-service build --dest dist/client",
     "build:server": "SSR=1 vue-cli-service build --dest dist/server",
+    "build-and-serve": "vue-devtools & yarn run build && node server.js",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@vue/devtools": "^6.0.0-beta.12",
     "@vue/server-renderer": "^3.0.11",
     "core-js": "^3.6.5",
     "express": "^4.17.1",
