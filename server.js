@@ -9,6 +9,7 @@ const manifest = require('./dist/server/ssr-manifest.json');
 const server = express();
 const appPath = path.join(__dirname, './dist', 'server', manifest['app.js']);
 
+// eslint-disable-next-line
 const createApp = require(appPath).default; // why need `.default`?
 
 server.use('/img', express.static(path.join(__dirname, './dist/client', 'img')));
@@ -23,16 +24,14 @@ server.get('*', async (request, response) => {
   await router.isReady();
 
   const appContent = await renderToString(app);
-  const renderState = `
-  <script>
-    window.INITIAL_DATA = ${serialize(store.state)}
-  </script>
-  `;
+  const renderState = `<script>window.VUEX_SSR_STATE = ${serialize(store.state)}</script>`;
   fs.readFile(path.join(__dirname, '/dist/client/index.html'), (error, html) => {
     if (error) {
       throw error;
     }
-    const htmlResponse = html.toString().replace('<div id="app">', `<div id="app">${appContent}`);
+    const htmlResponse = html
+      .toString()
+      .replace('<div id="app">', `${renderState}<div id="app">${appContent}`);
     response.setHeader('Content-Type', 'text/html');
     console.log(htmlResponse);
     response.send(htmlResponse);

@@ -12,7 +12,7 @@ const { app, router, store, devtools } = createApp();
 
 // eslint-disable-next-line
 // @ts-ignore
-const storeInitialState = window.INITIAL_DATA;
+const storeInitialState = window.VUEX_SSR_STATE;
 
 if (storeInitialState) {
   store.replaceState(storeInitialState);

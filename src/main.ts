@@ -1,11 +1,11 @@
 // import { createApp } from 'vue';
 import devtools from '@vue/devtools';
-import Vue, { createSSRApp } from 'vue';
+import createStore from './store';
+import Vue, { createSSRApp } from 'vue'; // this HAS to be imported after vue devtools
 
 import App from './App.vue';
 // import './registerServiceWorker';
 import createRouter from './router';
-import createStore from './store';
 
 export default function(...args: any) {
   const app = createSSRApp(App);
