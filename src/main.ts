@@ -1,5 +1,5 @@
 // import { createApp } from 'vue';
-import devtools from '@vue/devtools';
+// import devtools from '@vue/devtools';
 import createStore from './store';
 import Vue, { createSSRApp } from 'vue'; // this HAS to be imported after vue devtools
 
@@ -12,5 +12,6 @@ export default function(...args: any) {
   const router = createRouter();
   const store = createStore();
   app.use(router).use(store);
-  return { app, router, store, devtools };
+  // return { app, router, store, devtools };
+  return { app, router, store };
 }
