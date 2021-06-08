@@ -6,6 +6,7 @@
       check out the
       <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
     </p>
+    <p>this should say 'world':{{ storeHello }}</p>
     <h3>Installed CLI Plugins</h3>
     <ul>
       <li>
@@ -98,6 +99,12 @@ import { Options, Vue } from 'vue-class-component';
 @Options({
   props: {
     msg: String,
+  },
+
+  computed: {
+    storeHello() {
+      return this.$store.state.hello;
+    },
   },
 })
 export default class HelloWorld extends Vue {
