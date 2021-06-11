@@ -2,11 +2,14 @@ const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const nodeExternals = require('webpack-node-externals');
 const webpack = require('webpack');
 
+// const hmr = 'webpack/lib/HotModuleReplacementPlugin';
+
 module.exports = {
   publicPath: '',
   configureWebpack: {
     devServer: {
       headers: { 'Access-Control-Allow-Origin': '*' },
+      hot: process.env.NODE_ENV === 'development',
     },
   },
   chainWebpack: (webpackConfig) => {
@@ -15,7 +18,14 @@ module.exports = {
     webpackConfig.module.rule('ts').uses.delete('cache-loader');
     webpackConfig.module.rule('tsx').uses.delete('cache-loader');
 
+    if (process.env.NODE_ENV === 'development') {
+      // !Client and Server configuration for development mode
+      // webpackConfig.output.globalObject(`(typeof self !== 'undefined' ? self: this)`); // see line 64 of node_modules/@vue/cli-service/lib/commands/serve.js
+      // webpackConfig.plugin('progress').use('webpack/lib/ProgressPlugin'); // see lines 67-70 of node_modules/@vue/cli-service/lib/commands.serve.js
+    }
+
     if (process.env.SSR === 'false') {
+      // !Client configuration
       webpackConfig
         .entry('app')
         .clear()
@@ -25,31 +35,44 @@ module.exports = {
         .plugin('manifest')
         .use(new WebpackManifestPlugin({ fileName: 'client-manifest.json' }));
 
-      return;
+      if (process.env.NODE_ENV === 'development') {
+        // !Client configuration for development mode
+        console.log('client config');
+        webpackConfig.devtool('eval-cheap-module-source-map'); // see lines 53-54 of of node_modules/@vue/cli-service/lib/commands/serve.js
+        // webpackConfig.plugin('hmr').use(hmr); // see lines 56-58 of node_modules/@vue/cli-service/lib/commands/serve.js
+      }
+    } else {
+      // !Server configuration
+      webpackConfig
+        .entry('app')
+        .clear()
+        .add('./src/entry-server.ts');
+
+      webpackConfig.target('node');
+      webpackConfig.output.libraryTarget('commonjs2');
+
+      webpackConfig
+        .plugin('manifest')
+        .use(new WebpackManifestPlugin({ fileName: 'ssr-manifest.json' }));
+
+      webpackConfig.externals(nodeExternals({ allowlist: /\.(css|vue)$/ })); // this might need to be expanded to allow for less, stylus, scss, sass files
+
+      webpackConfig.optimization.splitChunks(false).minimize(false);
+      // do we need to disable hot module replacement? see: https://youtu.be/XJfaAkvLXyU?t=400
+      webpackConfig.plugins.delete('preload');
+      webpackConfig.plugins.delete('prefetch');
+      webpackConfig.plugins.delete('progress');
+      webpackConfig.plugins.delete('friendly-errors');
+
+      webpackConfig
+        .plugin('limit')
+        .use(new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }));
+
+      if (process.env.NODE_ENV === 'development') {
+        // !Server configuration for development mode
+        console.log('add in watch mode');
+      }
     }
-
-    webpackConfig
-      .entry('app')
-      .clear()
-      .add('./src/entry-server.ts');
-
-    webpackConfig.target('node');
-    webpackConfig.output.libraryTarget('commonjs2');
-
-    webpackConfig
-      .plugin('manifest')
-      .use(new WebpackManifestPlugin({ fileName: 'ssr-manifest.json' }));
-
-    webpackConfig.externals(nodeExternals({ allowlist: /\.(css|vue)$/ })); // this might need to be expanded to allow for less, stylus, scss, sass files
-
-    webpackConfig.optimization.splitChunks(false).minimize(false);
-    // do we need to disable hot module replacement? see: https://youtu.be/XJfaAkvLXyU?t=400
-    webpackConfig.plugins.delete('preload');
-    webpackConfig.plugins.delete('prefetch');
-    webpackConfig.plugins.delete('progress');
-    webpackConfig.plugins.delete('friendly-errors');
-
-    webpackConfig.plugin('limit').use(new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }));
   },
 };
 
@@ -75,6 +98,18 @@ module.exports = {
  * 4. `dev-server.js` https://github.com/Akryum/vue-cli-plugin-ssr/blob/e9d0c4fc448e11805edde294d2cb9654c1daa3ce/lib/dev-server.js
  *
  * Pass an instance of the Vue CLI Service to `getWebpackConfigs` (line 23), and receive the webpack configs for client and server, in response.
+ *
+ * Add hot module replacement to the client config (lines 46-49)
+ * stick the modified client config into `webpack()` and receive a webpack compiler for the client. (line 52)
+ * Pass the client compiler into the webpack dev middleware constructor (line 53), and receive a devMiddleware object
+ * Add the devMiddleware object to the server you passed in, with `server.use(devMiddleware)`
+ * Print the output from 'vue-cli-ssr-plugin' to console as soon as client compilation is complete (lines 62-87)
+ * Pass the client compiler into the webpack hot middleware constructor (line 95), and receive a hotMiddleware object. Then, add the hotMiddleware object to the server you passed in with `server.use(hotMiddleware)` (line 95)
+ *
+ * stick the modified server config into `webpack()`, and receive a webpack compiler for the server (line 98)
+ * start a new memory file system (line 99)
+ * make the webpack server compiler output to the memory file system (line 100)
+ * instruct the server compiler to run in watch mode. This causes the compiler to re-bundle the entire app every time a file changes. This is different from hot module replacement. With hot module replacement, only the module that contains the file that changed is rebundled. Finally, register a callback that prints to console each time the app is rebundled.
  *
  *
  * 5. `webpack.js` https://github.com/Akryum/vue-cli-plugin-ssr/blob/e9d0c4fc448e11805edde294d2cb9654c1daa3ce/lib/webpack.js

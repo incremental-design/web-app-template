@@ -25,7 +25,7 @@ router.isReady().then(() => {
 
   /* eslint-disable */
   // @ts-ignore
-  // app._container._vnode = instance.$.vnode // see https://github.com/vuejs/vue-devtools/issues/1376#issuecomment-794544045
+  app._container._vnode = instance.$.vnode // see https://github.com/vuejs/vue-devtools/issues/1376#issuecomment-794544045
   /* eslint-enable */
   // devtools.connect();
 });
