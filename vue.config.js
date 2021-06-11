@@ -19,7 +19,7 @@ module.exports = {
       hot: process.env.NODE_ENV === 'development',
       // injectHot: true,
       stats: 'none',
-      before(app, server) {
+      before(app) {
         if (process.env.SSR === 'false') {
           app.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
         }

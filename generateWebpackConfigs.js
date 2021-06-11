@@ -1,8 +1,11 @@
-(async () => {
-  const Webpack = require('webpack');
-  const WebpackDevServer = require('webpack-dev-server');
-  const portscanner = require('portscanner');
+const Webpack = require('webpack');
+const WebpackDevServer = require('webpack-dev-server');
+const portscanner = require('portscanner');
+const { createFsFromVolume, Volume } = require('memfs');
 
+const path = require('path');
+
+(async () => {
   const webpackConfig = './node_modules/@vue/cli-service/webpack.config.js';
   process.env.NODE_ENV = 'development';
 
@@ -35,19 +38,41 @@
   clearConfig();
   const ClientConfig = generateClientConfig();
 
-  // console.log(SSRConfig);
-  // console.log('\n\n\n\n');
-  // console.log(ClientConfig);
+  const ClientCompiler = Webpack(ClientConfig);
+  const SSRCompiler = Webpack(SSRConfig);
 
-  const compiler = Webpack(ClientConfig);
+  const memoryFilesystem = createFsFromVolume(new Volume());
+  memoryFilesystem.join = path.join.bind(path); // see https://webpack.js.org/contribute/writing-a-loader/#testing
 
-  const devServerConfig = generateClientConfig().devServer;
+  ClientCompiler.outputFileSystem = memoryFilesystem;
+  ClientCompiler.outputPath = path.join(__dirname, 'dist', 'client');
 
-  console.log(devServerConfig);
+  SSRCompiler.outputFileSystem = memoryFilesystem;
+  SSRCompiler.outputPath = path.join(__dirname, 'dist', 'server');
 
-  const server = new WebpackDevServer(compiler, devServerConfig);
+  // ClientCompiler.run((error, stats) => {
+  //   if (error) {
+  //     console.log(error);
+  //   }
+  //   console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'client')));
+  // });
 
-  const port = await portscanner.findAPortNotInUse(8080, 9000, '127.0.0.1');
+  ClientCompiler.run((clientError) => {
+    SSRCompiler.run((SSRError) => {
+      console.log('\n\n\n\n');
+      console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'client')));
+      console.log('\n\n\n\n');
+      console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'server')));
+    });
+  });
 
-  server.listen(port, '127.0.0.1');
+  // const devServerConfig = generateClientConfig().devServer;
+
+  // console.log(devServerConfig);
+
+  // const server = new WebpackDevServer(ClientCompiler, devServerConfig);
+
+  // const port = await portscanner.findAPortNotInUse(8080, 9000, '127.0.0.1');
+
+  // server.listen(port, '127.0.0.1');
 })();
