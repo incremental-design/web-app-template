@@ -25,6 +25,8 @@ server.get('*', async (request, response) => {
 
   const appContent = await renderToString(app);
   const renderState = `<script>window.VUEX_SSR_STATE = ${serialize(store.state)}</script>`;
+  // consider putting render state into a VUE_APP_* environment variable, and then interpolating that variable in your public/index.html. See: https://cli.vuejs.org/guide/html-and-static-assets.html#interpolation
+
   fs.readFile(path.join(__dirname, '/dist/client/index.html'), (error, html) => {
     if (error) {
       throw error;
