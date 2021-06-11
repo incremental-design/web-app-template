@@ -2,8 +2,10 @@ const Webpack = require('webpack');
 const WebpackDevServer = require('webpack-dev-server');
 const portscanner = require('portscanner');
 const { createFsFromVolume, Volume } = require('memfs');
-
 const path = require('path');
+const serialize = require('serialize-javascript');
+const express = require('express');
+const { renderToString } = require('@vue/server-renderer');
 
 (async () => {
   const webpackConfig = './node_modules/@vue/cli-service/webpack.config.js';
@@ -50,21 +52,46 @@ const path = require('path');
   SSRCompiler.outputFileSystem = memoryFilesystem;
   SSRCompiler.outputPath = path.join(__dirname, 'dist', 'server');
 
-  // ClientCompiler.run((error, stats) => {
-  //   if (error) {
-  //     console.log(error);
-  //   }
-  //   console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'client')));
+  // ClientCompiler.run((clientError) => {
+  //   SSRCompiler.run((SSRError) => {
+  //     console.log('\n\n\n\n');
+  //     console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'client')));
+  //     console.log('\n\n\n\n');
+  //     console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'server')));
+  //   });
   // });
 
-  ClientCompiler.run((clientError) => {
-    SSRCompiler.run((SSRError) => {
-      console.log('\n\n\n\n');
-      console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'client')));
-      console.log('\n\n\n\n');
-      console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'server')));
+  const compileClient = () => {
+    return new Promise((resolve, reject) => {
+      ClientCompiler.run((error, stats) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(stats);
+        }
+      });
     });
-  });
+  };
+
+  const compileServer = () => {
+    return new Promise((resolve, reject) => {
+      SSRCompiler.run((error, stats) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(stats);
+        }
+      });
+    });
+  };
+
+  await compileClient();
+  await compileServer();
+
+  console.log('\n\n\n\n');
+  console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'client')));
+  console.log('\n\n\n\n');
+  console.log(memoryFilesystem.readdirSync(path.join(__dirname, 'dist', 'server')));
 
   // const devServerConfig = generateClientConfig().devServer;
 
