@@ -10,6 +10,7 @@ module.exports = {
     devServer: {
       headers: { 'Access-Control-Allow-Origin': '*' },
       hot: process.env.NODE_ENV === 'development',
+      stats: 'none',
     },
   },
   chainWebpack: (webpackConfig) => {
@@ -21,7 +22,7 @@ module.exports = {
     if (process.env.NODE_ENV === 'development') {
       // !Client and Server configuration for development mode
       // webpackConfig.output.globalObject(`(typeof self !== 'undefined' ? self: this)`); // see line 64 of node_modules/@vue/cli-service/lib/commands/serve.js
-      // webpackConfig.plugin('progress').use('webpack/lib/ProgressPlugin'); // see lines 67-70 of node_modules/@vue/cli-service/lib/commands.serve.js
+      webpackConfig.plugin('progress').use('webpack/lib/ProgressPlugin'); // see lines 67-70 of node_modules/@vue/cli-service/lib/commands.serve.js
     }
 
     if (process.env.SSR === 'false') {
