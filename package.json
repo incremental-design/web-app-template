@@ -5,8 +5,8 @@
   "scripts": {
     "serve": "vue-devtools & vue-cli-service serve",
     "build": "yarn run build:client && yarn run build:server",
-    "build:client": "vue-cli-service build --dest dist/client",
-    "build:server": "SSR=1 vue-cli-service build --dest dist/server",
+    "build:client": "SSR=false vue-cli-service build --dest dist/client",
+    "build:server": "SSR=true vue-cli-service build --dest dist/server",
     "build-and-serve": "vue-devtools & yarn run build && node server.js",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint"

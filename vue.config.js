@@ -15,7 +15,7 @@ module.exports = {
     webpackConfig.module.rule('ts').uses.delete('cache-loader');
     webpackConfig.module.rule('tsx').uses.delete('cache-loader');
 
-    if (!process.env.SSR) {
+    if (process.env.SSR === 'false') {
       webpackConfig
         .entry('app')
         .clear()
@@ -26,8 +26,6 @@ module.exports = {
         .use(new WebpackManifestPlugin({ fileName: 'client-manifest.json' }));
 
       return;
-
-      // need to make clientManifest ... see: https://v3.vuejs.org/guide/ssr/build-config.html#generating-clientmanifest
     }
 
     webpackConfig
