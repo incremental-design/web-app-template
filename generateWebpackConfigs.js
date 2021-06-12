@@ -163,26 +163,42 @@ async function runServer() {
     ServerConfig
   );
 
-  const startCompilers = () => {
-    return new Promise((resolve, reject) => {
-      ClientCompiler.run((clientError, clientStats) => {
-        if (clientError) {
-          reject(clientError);
+  // const startCompilers = () => {
+  //   return new Promise((resolve, reject) => {
+  //     ClientCompiler.run((clientError, clientStats) => {
+  //       if (clientError) {
+  //         reject(clientError);
+  //       } else {
+  //         ServerCompiler.run((serverError, serverStats) => {
+  //           if (serverError) {
+  //             reject(serverError);
+  //           } else {
+  //             console.log('the server was rebuilt!');
+  //             resolve(clientStats, serverStats);
+  //           }
+  //         });
+  //       }
+  //     });
+  //   });
+  // };
+
+  // await startCompilers();
+
+  const ClientWatcher = ClientCompiler.watch((clientError, clientStats) => {
+    if (clientError) {
+      console.error(clientError);
+    } else {
+      console.log(clientStats);
+      ServerCompiler.run((serverError, serverStats) => {
+        if (serverError) {
+          console.error(serverError);
         } else {
-          ServerCompiler.run((serverError, serverStats) => {
-            if (serverError) {
-              reject(serverError);
-            } else {
-              console.log('the server was rebuilt!');
-              resolve(clientStats, serverStats);
-            }
-          });
+          console.log(serverStats);
         }
       });
-    });
-  };
+    }
+  });
 
-  await startCompilers();
   const server = setupServer(ClientConfig, ClientCompiler, MemoryFilesystem);
 
   server.listen(8080);
