@@ -73,6 +73,18 @@ async function runCompiler(Compiler) {
   });
 }
 
+function makeUnionFilesystem(MemoryFilesystem) {
+  ufs.use(MemoryFilesystem).use(fs);
+  patchRequire(ufs); // see: https://github.com/streamich/fs-monkey/blob/master/docs/api/patchRequire.md
+}
+
+function getSSREntrypoint(MemoryFilesystem) {
+  // this will fail ifmakeUnionFilesystem hasn't been run!
+  const manifest = require(path.join(__dirname, 'dist', 'server', 'ssr-manifest.json')); // eslint-disable-line
+  const appPath = path.join(__dirname, 'dist', 'server', manifest['app.js']);
+  return require(appPath).default; // eslint-disable-line
+}
+
 async function setupServer() {
   const { ClientConfig, ServerConfig } = getWebpackConfigs();
   const { ClientCompiler, ServerCompiler, MemoryFilesystem } = await setupCompilers(
@@ -83,23 +95,13 @@ async function setupServer() {
   await runCompiler(ClientCompiler);
   await runCompiler(ServerCompiler);
 
-  ufs.use(MemoryFilesystem).use(fs);
-  patchRequire(ufs); // see: https://github.com/streamich/fs-monkey/blob/master/docs/api/patchRequire.md
+  makeUnionFilesystem(MemoryFilesystem);
 
-  // eslint-disable-next-line
-  const manifest = require(path.join(__dirname, 'dist', 'server', 'ssr-manifest.json'));
+  const createApp = getSSREntrypoint(MemoryFilesystem);
 
   const server = express();
 
-  const appPath = path.join(__dirname, 'dist', 'server', manifest['app.js']);
-
-  // eslint-disable-next-line
-  const createApp = require(appPath).default;
-
   const serveStaticFromMemoryFilesystem = (request, response, next) => {
-    // switch(request.toString().split('/')){
-    // }
-    // console.log(`the request was ${request.path.split('/')[1]} \n\n`);
     switch (request.path.split('/')[1]) {
       case 'js':
       case 'css':
@@ -121,8 +123,6 @@ async function setupServer() {
   };
 
   server.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
-
-  console.log(ClientConfig.output.publicPath);
 
   server.use(serveStaticFromMemoryFilesystem);
 
