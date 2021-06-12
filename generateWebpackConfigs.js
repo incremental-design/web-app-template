@@ -12,9 +12,10 @@ const { renderToString } = require('@vue/server-renderer');
 const launchEditorMiddleware = require('launch-editor-middleware');
 const webpackDevMiddleware = require('webpack-dev-middleware');
 const webpackHotMiddleware = require('webpack-hot-middleware');
-
 const { exec } = require('child_process');
 const deasync = require('deasync');
+
+let previousAppPath;
 
 process.env.NODE_ENV = 'development';
 
@@ -24,15 +25,19 @@ function getEditor() {
   // assume that vscode is installed.
 }
 
+function deleteKeyFromRequireCache(keyToDelete) {
+  Object.keys(require.cache).forEach((key) => {
+    if (key.toString().includes(keyToDelete)) {
+      delete require.cache[key];
+    }
+  });
+}
+
 function getWebpackConfigs() {
   const webpackConfigPath = './node_modules/@vue/cli-service/webpack.config.js';
 
   const clearConfig = () => {
-    Object.keys(require.cache).forEach((key) => {
-      if (key.toString().includes(webpackConfigPath.slice(1))) {
-        delete require.cache[key];
-      }
-    });
+    deleteKeyFromRequireCache(webpackConfigPath.slice(1));
   };
 
   process.env.SSR = 'false'; // this has to be a string or node will complain
@@ -78,30 +83,26 @@ function makeUnionFilesystem(MemoryFilesystem) {
   patchRequire(ufs); // see: https://github.com/streamich/fs-monkey/blob/master/docs/api/patchRequire.md
 }
 
-function getSSREntrypoint(MemoryFilesystem) {
-  // this will fail ifmakeUnionFilesystem hasn't been run!
+function getSSREntrypoint() {
+  // this will fail if 'makeUnionFilesystem' hasn't been run!
+
+  const clearPreviousSSREntrypoint = () => {
+    deleteKeyFromRequireCache(previousAppPath);
+  };
+
+  if (previousAppPath) {
+    clearPreviousSSREntrypoint();
+  }
   const manifest = require(path.join(__dirname, 'dist', 'server', 'ssr-manifest.json')); // eslint-disable-line
   const appPath = path.join(__dirname, 'dist', 'server', manifest['app.js']);
+  previousAppPath = appPath;
+  console.log(appPath);
   return require(appPath).default; // eslint-disable-line
 }
 
-async function setupServer() {
-  const { ClientConfig, ServerConfig } = getWebpackConfigs();
-  const { ClientCompiler, ServerCompiler, MemoryFilesystem } = await setupCompilers(
-    ClientConfig,
-    ServerConfig
-  );
-
-  await runCompiler(ClientCompiler);
-  await runCompiler(ServerCompiler);
-
-  makeUnionFilesystem(MemoryFilesystem);
-
-  const createApp = getSSREntrypoint(MemoryFilesystem);
-
+function setupServer(ClientConfig, ClientCompiler, MemoryFilesystem) {
   const server = express();
-
-  const serveStaticFromMemoryFilesystem = (request, response, next) => {
+  const middlewareServeStaticFromMemoryFilesystem = (request, response, next) => {
     switch (request.path.split('/')[1]) {
       case 'js':
       case 'css':
@@ -121,10 +122,9 @@ async function setupServer() {
         next();
     }
   };
-
   server.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
 
-  server.use(serveStaticFromMemoryFilesystem);
+  server.use(middlewareServeStaticFromMemoryFilesystem);
 
   server.use(
     webpackDevMiddleware(ClientCompiler, {
@@ -134,9 +134,17 @@ async function setupServer() {
       index: false,
     })
   ); // see: https://www.npmjs.com/package/webpack-hot-middleware
+
   server.use(webpackHotMiddleware(ClientCompiler));
+
+  makeUnionFilesystem(MemoryFilesystem);
+
+  const createApp = () => {
+    return getSSREntrypoint(MemoryFilesystem)();
+  };
+
   server.get('*', async (request, response) => {
-    const { app, router, store } = await createApp();
+    const { app, router, store } = createApp();
 
     router.push(request.url);
     await router.isReady();
@@ -157,7 +165,22 @@ async function setupServer() {
     });
   });
 
+  return server;
+}
+
+async function runServer() {
+  const { ClientConfig, ServerConfig } = getWebpackConfigs();
+  const { ClientCompiler, ServerCompiler, MemoryFilesystem } = await setupCompilers(
+    ClientConfig,
+    ServerConfig
+  );
+
+  await runCompiler(ClientCompiler);
+  await runCompiler(ServerCompiler);
+
+  const server = setupServer(ClientConfig, ClientCompiler, MemoryFilesystem);
+
   server.listen(8080);
 }
 
-setupServer();
+runServer();
