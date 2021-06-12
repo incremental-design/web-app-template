@@ -1,31 +1,22 @@
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const nodeExternals = require('webpack-node-externals');
 const webpack = require('webpack');
-const launchEditorMiddleware = require('launch-editor-middleware');
-const { exec } = require('child_process');
-const deasync = require('deasync');
-
-function getEditor() {
-  const execSync = deasync(exec);
-  return execSync('which nova').trim() === '/usr/local/bin/nova' ? 'nova' : 'code';
-  // assume that vscode is installed.
-}
 
 module.exports = {
   publicPath: '',
-  configureWebpack: {
-    devServer: {
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      hot: process.env.NODE_ENV === 'development',
-      // injectHot: true,
-      stats: 'none',
-      before(app) {
-        if (process.env.SSR === 'false') {
-          app.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
-        }
-      },
-    },
-  },
+  // configureWebpack: {
+  //   devServer: {
+  //     headers: { 'Access-Control-Allow-Origin': '*' },
+  //     // hot: process.env.NODE_ENV === 'development',
+  //     // injectHot: true,
+  //     stats: 'none',
+  //     before(app) {
+  //       if (process.env.SSR === 'false') {
+  //         app.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
+  //       }
+  //     },
+  //   },
+  // },
   chainWebpack: (webpackConfig) => {
     webpackConfig.module.rule('vue').uses.delete('cache-loader');
     webpackConfig.module.rule('js').uses.delete('cache-loader');

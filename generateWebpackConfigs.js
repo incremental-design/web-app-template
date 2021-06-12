@@ -9,7 +9,16 @@ const path = require('path');
 const serialize = require('serialize-javascript');
 const express = require('express');
 const { renderToString } = require('@vue/server-renderer');
+const launchEditorMiddleware = require('launch-editor-middleware');
+
+const { exec } = require('child_process');
 const deasync = require('deasync');
+
+function getEditor() {
+  const execSync = deasync(exec);
+  return execSync('which nova').trim() === '/usr/local/bin/nova' ? 'nova' : 'code';
+  // assume that vscode is installed.
+}
 
 async function setupServer() {
   const webpackConfig = './node_modules/@vue/cli-service/webpack.config.js';
@@ -122,6 +131,8 @@ async function setupServer() {
         next();
     }
   };
+
+  server.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
 
   server.use(serveStaticFromMemoryFilesystem);
 
