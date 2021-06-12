@@ -10,6 +10,8 @@ const serialize = require('serialize-javascript');
 const express = require('express');
 const { renderToString } = require('@vue/server-renderer');
 const launchEditorMiddleware = require('launch-editor-middleware');
+const webpackDevMiddleware = require('webpack-dev-middleware');
+const webpackHotMiddleware = require('webpack-hot-middleware');
 
 const { exec } = require('child_process');
 const deasync = require('deasync');
@@ -94,19 +96,15 @@ async function setupServer() {
   ufs.use(memoryFilesystem).use(fs);
   patchRequire(ufs); // see: https://github.com/streamich/fs-monkey/blob/master/docs/api/patchRequire.md
 
-  // eslint-ingore-next-line
+  // eslint-disable-next-line
   const manifest = require(path.join(__dirname, 'dist', 'server', 'ssr-manifest.json'));
 
   const server = express();
 
   const appPath = path.join(__dirname, 'dist', 'server', manifest['app.js']);
 
+  // eslint-disable-next-line
   const createApp = require(appPath).default;
-
-  server.use('/img', express.static(path.join(__dirname, './dist/client', 'img')));
-  server.use('/js', express.static(path.join(__dirname, './dist/client', 'js')));
-  server.use('/css', express.static(path.join(__dirname, './dist/client', 'css')));
-  server.use('/favicon.ico', express.static(path.join(__dirname, './dist/client', 'favicon.ico')));
 
   const serveStaticFromMemoryFilesystem = (request, response, next) => {
     // switch(request.toString().split('/')){
@@ -134,8 +132,19 @@ async function setupServer() {
 
   server.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
 
+  console.log(ClientConfig.output.publicPath);
+
   server.use(serveStaticFromMemoryFilesystem);
 
+  server.use(
+    webpackDevMiddleware(ClientCompiler, {
+      // mimeTypes: { html: 'text/html', js: 'application/javascript' },
+      publicPath: ClientConfig.output.publicPath,
+      stats: false,
+      index: false,
+    })
+  ); // see: https://www.npmjs.com/package/webpack-hot-middleware
+  server.use(webpackHotMiddleware(ClientCompiler));
   server.get('*', async (request, response) => {
     const { app, router, store } = await createApp();
 
@@ -159,14 +168,6 @@ async function setupServer() {
   });
 
   server.listen(8080);
-
-  // const devServerConfig = generateClientConfig().devServer;
-
-  // const server = new WebpackDevServer(ClientCompiler, devServerConfig);
-
-  // const port = await portscanner.findAPortNotInUse(8080, 9000, '127.0.0.1');
-
-  // server.listen(port, '127.0.0.1');
 }
 
 setupServer();

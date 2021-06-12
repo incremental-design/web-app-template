@@ -1,22 +1,10 @@
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 const nodeExternals = require('webpack-node-externals');
 const webpack = require('webpack');
+const hmr = require('webpack/lib/HotModuleReplacementPlugin');
 
 module.exports = {
   publicPath: '',
-  // configureWebpack: {
-  //   devServer: {
-  //     headers: { 'Access-Control-Allow-Origin': '*' },
-  //     // hot: process.env.NODE_ENV === 'development',
-  //     // injectHot: true,
-  //     stats: 'none',
-  //     before(app) {
-  //       if (process.env.SSR === 'false') {
-  //         app.use('/__open-in-editor', launchEditorMiddleware(getEditor()));
-  //       }
-  //     },
-  //   },
-  // },
   chainWebpack: (webpackConfig) => {
     webpackConfig.module.rule('vue').uses.delete('cache-loader');
     webpackConfig.module.rule('js').uses.delete('cache-loader');
@@ -34,6 +22,7 @@ module.exports = {
       webpackConfig
         .entry('app')
         .clear()
+        .add('webpack-hot-middleware/client')
         .add('./src/entry-client.ts');
 
       webpackConfig
@@ -45,6 +34,7 @@ module.exports = {
         console.log('client config');
         webpackConfig.devtool('eval-cheap-module-source-map'); // see lines 53-54 of of node_modules/@vue/cli-service/lib/commands/serve.js
         // webpackConfig.plugin('hmr').use(hmr); // see lines 56-58 of node_modules/@vue/cli-service/lib/commands/serve.js
+        webpackConfig.plugin('hmr').use(hmr);
       }
     } else {
       // !Server configuration

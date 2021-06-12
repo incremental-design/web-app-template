@@ -55,6 +55,8 @@
     "unionfs": "^4.4.0",
     "vue-jest": "^5.0.0-0",
     "webpack-chain": "^6.5.1",
+    "webpack-dev-middleware": "^5.0.0",
+    "webpack-hot-middleware": "^2.25.0",
     "webpack-manifest-plugin": "^3.1.1",
     "webpack-merge": "^5.8.0",
     "webpack-node-externals": "^3.0.0"
