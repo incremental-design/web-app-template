@@ -45,49 +45,45 @@ function getWebpackConfigs() {
   return { ClientConfig, ServerConfig };
 }
 
-async function setupServer() {
-  const { ClientConfig, ServerConfig } = getWebpackConfigs();
-
+async function setupCompilers(ClientConfig, ServerConfig) {
   const ClientCompiler = Webpack(ClientConfig);
-  const SSRCompiler = Webpack(ServerConfig);
+  const ServerCompiler = Webpack(ServerConfig);
+  const MemoryFilesystem = createFsFromVolume(new Volume());
 
-  const memoryFilesystem = createFsFromVolume(new Volume());
-  memoryFilesystem.join = path.join.bind(path); // see https://webpack.js.org/contribute/writing-a-loader/#testing
+  MemoryFilesystem.join = path.join.bind(path); // see https://webpack.js.org/contribute/writing-a-loader/#testing
 
-  ClientCompiler.outputFileSystem = memoryFilesystem;
+  ClientCompiler.outputFileSystem = MemoryFilesystem;
   ClientCompiler.outputPath = path.join(__dirname, 'dist', 'client');
 
-  SSRCompiler.outputFileSystem = memoryFilesystem;
-  SSRCompiler.outputPath = path.join(__dirname, 'dist', 'server');
+  ServerCompiler.outputFileSystem = MemoryFilesystem;
+  ServerCompiler.outputPath = path.join(__dirname, 'dist', 'server');
 
-  const compileClient = () => {
-    return new Promise((resolve, reject) => {
-      ClientCompiler.run((error, stats) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(stats);
-        }
-      });
+  return { ClientCompiler, ServerCompiler, MemoryFilesystem };
+}
+
+async function runCompiler(Compiler) {
+  return new Promise((resolve, reject) => {
+    Compiler.run((error, stats) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stats);
+      }
     });
-  };
+  });
+}
 
-  const compileServer = () => {
-    return new Promise((resolve, reject) => {
-      SSRCompiler.run((error, stats) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(stats);
-        }
-      });
-    });
-  };
+async function setupServer() {
+  const { ClientConfig, ServerConfig } = getWebpackConfigs();
+  const { ClientCompiler, ServerCompiler, MemoryFilesystem } = await setupCompilers(
+    ClientConfig,
+    ServerConfig
+  );
 
-  await compileClient();
-  await compileServer();
+  await runCompiler(ClientCompiler);
+  await runCompiler(ServerCompiler);
 
-  ufs.use(memoryFilesystem).use(fs);
+  ufs.use(MemoryFilesystem).use(fs);
   patchRequire(ufs); // see: https://github.com/streamich/fs-monkey/blob/master/docs/api/patchRequire.md
 
   // eslint-disable-next-line
@@ -108,14 +104,14 @@ async function setupServer() {
       case 'js':
       case 'css':
         response.send(
-          memoryFilesystem.readFileSync(path.join(__dirname, 'dist', 'client', request.path))
+          MemoryFilesystem.readFileSync(path.join(__dirname, 'dist', 'client', request.path))
         );
         break;
       case 'img':
       case 'favicon.ico':
         response.send(
           Buffer.from(
-            memoryFilesystem.readFileSync(path.join(__dirname, 'dist', 'client', request.path))
+            MemoryFilesystem.readFileSync(path.join(__dirname, 'dist', 'client', request.path))
           )
         );
         break;
@@ -149,7 +145,7 @@ async function setupServer() {
     const renderState = `<script>window.VUEX_SSR_STATE = ${serialize(store.state)}</script>`;
     // consider putting render state into a VUE_APP_* environment variable, and then interpolating that variable in your public/index.html. See: https://cli.vuejs.org/guide/html-and-static-assets.html#interpolation
 
-    memoryFilesystem.readFile(path.join(__dirname, '/dist/client/index.html'), (error, html) => {
+    MemoryFilesystem.readFile(path.join(__dirname, '/dist/client/index.html'), (error, html) => {
       if (error) {
         throw error;
       }
