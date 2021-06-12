@@ -16,46 +16,40 @@ const webpackHotMiddleware = require('webpack-hot-middleware');
 const { exec } = require('child_process');
 const deasync = require('deasync');
 
+process.env.NODE_ENV = 'development';
+
 function getEditor() {
   const execSync = deasync(exec);
   return execSync('which nova').trim() === '/usr/local/bin/nova' ? 'nova' : 'code';
   // assume that vscode is installed.
 }
 
-async function setupServer() {
-  const webpackConfig = './node_modules/@vue/cli-service/webpack.config.js';
-  process.env.NODE_ENV = 'development';
+function getWebpackConfigs() {
+  const webpackConfigPath = './node_modules/@vue/cli-service/webpack.config.js';
 
-  function importConfig() {
-    // eslint-disable-next-line
-  return require(webpackConfig);
-  }
-
-  function clearConfig() {
-    // see: https://gist.github.com/joerx/3296d972735adc5b4ec1
+  const clearConfig = () => {
     Object.keys(require.cache).forEach((key) => {
-      if (key.toString().includes(webpackConfig.slice(1))) {
+      if (key.toString().includes(webpackConfigPath.slice(1))) {
         delete require.cache[key];
       }
     });
-  }
+  };
 
-  function generateSSRConfig() {
-    process.env.SSR = 'true';
-    return importConfig();
-  }
-
-  function generateClientConfig() {
-    process.env.SSR = 'false';
-    return importConfig();
-  }
-
-  const SSRConfig = generateSSRConfig();
+  process.env.SSR = 'false'; // this has to be a string or node will complain
+  const ClientConfig = require(webpackConfigPath); // eslint-disable-line
   clearConfig();
-  const ClientConfig = generateClientConfig();
+  process.env.SSR = 'true'; // this has to be a string or node will complain
+  const ServerConfig = require(webpackConfigPath) // eslint-disable-line
+  delete process.env.SSR;
+
+  return { ClientConfig, ServerConfig };
+}
+
+async function setupServer() {
+  const { ClientConfig, ServerConfig } = getWebpackConfigs();
 
   const ClientCompiler = Webpack(ClientConfig);
-  const SSRCompiler = Webpack(SSRConfig);
+  const SSRCompiler = Webpack(ServerConfig);
 
   const memoryFilesystem = createFsFromVolume(new Volume());
   memoryFilesystem.join = path.join.bind(path); // see https://webpack.js.org/contribute/writing-a-loader/#testing
