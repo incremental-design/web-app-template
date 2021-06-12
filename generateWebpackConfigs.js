@@ -66,18 +66,6 @@ async function setupCompilers(ClientConfig, ServerConfig) {
   return { ClientCompiler, ServerCompiler, MemoryFilesystem };
 }
 
-async function runCompiler(Compiler) {
-  return new Promise((resolve, reject) => {
-    Compiler.run((error, stats) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(stats);
-      }
-    });
-  });
-}
-
 function makeUnionFilesystem(MemoryFilesystem) {
   ufs.use(MemoryFilesystem).use(fs);
   patchRequire(ufs); // see: https://github.com/streamich/fs-monkey/blob/master/docs/api/patchRequire.md
@@ -85,7 +73,7 @@ function makeUnionFilesystem(MemoryFilesystem) {
 
 function getSSREntrypoint() {
   // this will fail if 'makeUnionFilesystem' hasn't been run!
-
+  console.log(`the previous app path is ${previousAppPath}`);
   const clearPreviousSSREntrypoint = () => {
     deleteKeyFromRequireCache(previousAppPath);
   };
@@ -175,9 +163,26 @@ async function runServer() {
     ServerConfig
   );
 
-  await runCompiler(ClientCompiler);
-  await runCompiler(ServerCompiler);
+  const startCompilers = () => {
+    return new Promise((resolve, reject) => {
+      ClientCompiler.run((clientError, clientStats) => {
+        if (clientError) {
+          reject(clientError);
+        } else {
+          ServerCompiler.run((serverError, serverStats) => {
+            if (serverError) {
+              reject(serverError);
+            } else {
+              console.log('the server was rebuilt!');
+              resolve(clientStats, serverStats);
+            }
+          });
+        }
+      });
+    });
+  };
 
+  await startCompilers();
   const server = setupServer(ClientConfig, ClientCompiler, MemoryFilesystem);
 
   server.listen(8080);
