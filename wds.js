@@ -7,18 +7,34 @@ const WebpackHotMiddleware = require('webpack-hot-middleware');
 const path = require('path');
 const { patchRequire } = require('fs-monkey');
 
+const pathToWebpackConfig = './node_modules/@vue/cli-service/webpack.config.js';
+
 const ClientCompiler = (() => {
   // this will only work if if `process.env.NODE_ENV = 'development'` and `process.env.SSR = 'false'`
-  // eslint-disable-next-line
-  const ClientConfig = require('./node_modules/@vue/cli-service/webpack.config.js');
+  const ClientConfig = require(pathToWebpackConfig); // eslint-disable-line
   return Webpack(ClientConfig);
 })();
+
+function deleteKeyFromRequireCache(keyToDelete) {
+  Object.keys(require.cache).forEach((key) => {
+    if (key.toString().includes(keyToDelete)) {
+      console.log(`deleting ${key}`);
+      delete require.cache[key];
+    }
+  });
+}
+
+const generateServerSideApp = () => {
+  process.env.SSR = 'true';
+  deleteKeyFromRequireCache(pathToWebpackConfig.slice(1));
+  const ServerConfig = require(pathToWebpackConfig); // eslint-disable-line
+  const ServerCompiler = Webpack(ServerConfig);
+  console.log(ServerCompiler);
+};
 
 const express = require('express');
 
 const server = express();
-
-const { JSDOM } = require('jsdom');
 
 server.use(
   WebpackDevMiddleware(ClientCompiler, {
@@ -36,6 +52,8 @@ server.use((request, response) => {
     path.join(__dirname, 'dist', 'index.html'),
     'utf8'
   );
+
+  generateServerSideApp();
 
   // run the server bundle, stick the results into indexHTML, then send it!
 });
