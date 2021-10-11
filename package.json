@@ -36,10 +36,15 @@
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-prettier": "3.4.0",
     "eslint-plugin-vue": "^7.0.0",
+    "expect-playwright": "^0.8.0",
     "less": "^3.0.4",
     "less-loader": "^5.0.0",
+    "playwright": "^1.15.2",
+    "portscanner": "^2.2.0",
     "prettier": "2.4.1",
     "typescript": "~4.1.5",
-    "vue-jest": "^5.0.0-0"
+    "vue-jest": "^5.0.0-0",
+    "webpack": "^4.0.0",
+    "webpack-dev-server": "^3.11.0"
   }
 }
