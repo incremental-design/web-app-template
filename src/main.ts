@@ -1,7 +1,14 @@
-import { createApp } from 'vue';
+import { createSSRApp } from 'vue';
 import App from './App.vue';
-import './registerServiceWorker';
-import router from './router';
-import store from './store';
+import makeRouter from './router';
+import makeStore from './store';
 
-createApp(App).use(store).use(router).mount('#app');
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export default function () {
+  const router = makeRouter();
+  const store = makeStore();
+
+  const app = createSSRApp(App).use(store).use(router);
+
+  return { app, router, store };
+}

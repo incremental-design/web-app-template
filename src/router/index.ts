@@ -1,4 +1,10 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
+import {
+  Router,
+  createRouter,
+  createWebHistory,
+  RouteRecordRaw,
+  createMemoryHistory,
+} from 'vue-router';
 import Home from '../views/Home.vue';
 
 const routes: Array<RouteRecordRaw> = [
@@ -21,9 +27,13 @@ const routes: Array<RouteRecordRaw> = [
   },
 ];
 
-const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
-  routes,
-});
-
-export default router;
+export default function (): Router {
+  const router = createRouter({
+    history:
+      typeof window === 'undefined'
+        ? createMemoryHistory(process.env.BASE_URL)
+        : createWebHistory(process.env.BASE_URL),
+    routes,
+  });
+  return router;
+}

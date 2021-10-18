@@ -26,7 +26,7 @@ describe('HelloWorld.vue', () => {
   it('should go to a webpage', async () => {
     await page.goto(`127.0.0.1:${process.env.WEBPACK_DEVELOPMENT_SERVER_PORT}`);
     expect(await page.title()).toBe(process.env.npm_package_name);
-  })
+  });
 });
 
 afterEach(async () => {
